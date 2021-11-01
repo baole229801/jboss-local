@@ -1,0 +1,11 @@
+---
+- name: Copy Jboss profiles to target hosts
+  ansible.builtin.copy:
+    remote_src: no
+    src: ../profile/t24domain_profile.cli
+    dest: "{{ tafj_home }}/appserver/jboss/jboss7eap/jboss-cli"
+
+- name: Setup the profiles
+  shell: "jboss-cli.sh --connect --file=$TAFJ_HOME/appserver/jboss/jboss7eap/jboss-cli/t24domain_profile.cli --properties=$TAFJ_HOME/appserver/jboss/jboss7eap/jboss-cli/tafj.properties"
+  args:
+    chdir: "{{ jboss_home }}/bin"

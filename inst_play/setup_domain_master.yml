@@ -1,0 +1,33 @@
+---
+- name: Copy the host-master.xml to Transact.xml
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ jboss_home }}/domain/configuration/host-master.xml"
+    dest: "{{ jboss_home }}/domain/configuration/Transact.xml"
+
+- name: Edit the Transact.xml
+  ansible.builtin.lineinfile:
+    path: "{{ jboss_home }}/domain/configuration/Transact.xml"
+    regexp: "^{{ item.old }}"
+    line: "{{ item.new }}"
+  with_items:
+    - {
+        old: '<host xmlns="urn:jboss:domain:11.0" name="master">',
+        new: '<host xmlns="urn:jboss:domain:11.0" name="DOMAIN-master">',
+      }
+    - {
+        old: "            <inet-address value=\"\\${jboss.bind.address.management:127.0.0.1}\"/>",
+        new: '<inet-address value="${jboss.bind.address.management:{{ domain_controller }}}"/>',
+      }
+
+- name: Run the master instance
+  shell: "nohup ./domain.sh -b {{ domain_controller }} -bmanagement {{ domain_controller }} --host-config=Transact.xml&"
+  args:
+    chdir: "{{ jboss_home }}/bin"
+
+- name: Pause for the JBoss's domain controller startup to finish
+  wait_for:
+    host: "{{ domain_controller }}"
+    port: 9990
+    delay: 10
+

@@ -1,0 +1,34 @@
+---
+- name: Copy the host-slave.xml to Transact.xml
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ jboss_home }}/domain/configuration/host-slave.xml"
+    dest: "{{ jboss_home }}/domain/configuration/Transact.xml"
+
+- name: Edit the Transact.xml
+  ansible.builtin.lineinfile:
+    path: "{{ jboss_home }}/domain/configuration/Transact.xml"
+    regexp: "^{{ item.old }}"
+    line: "{{ item.new }}"
+  with_items:
+    - {
+        old: '<host xmlns="urn:jboss:domain:11.0">',
+        new: '<host xmlns="urn:jboss:domain:11.0" name="APP-slave">',
+      }
+    - {
+        old: "            <inet-address value=\"\\${jboss.bind.address:127.0.0.1}\"/>",
+        new: '            <inet-address value="${jboss.bind.address:{{ host_ip }}}"/>',
+      }
+    - {
+        old: "                <static-discovery name=\"primary\" protocol=\"\\${jboss.domain.master.protocol:remote\\+http}\" host=\"\\${jboss.domain.master.address}\" port=\"\\${jboss.domain.master.port:9990}\"/>",
+        new: '                <static-discovery name="primary" protocol="${jboss.domain.master.protocol:remote+http}" host="${jboss.domain.master.address:{{ domain_controller }}}" port="${jboss.domain.master.port:9990}"/>',
+      }
+    - {
+        old: '        <remote security-realm="ManagementRealm">',
+        new: '        <remote security-realm="ManagementRealm" username="t24domain">',
+      }
+
+- name: Run the slave instance
+  shell: "nohup ./domain.sh --host-config=Transact.xml&"
+  args:
+    chdir: "{{ jboss_home }}/bin"

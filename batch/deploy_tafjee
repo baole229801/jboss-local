@@ -1,0 +1,2 @@
+connect
+deploymen deploy-file /T24/inst/app/TAFJEE.ear --server-group=tfj-group

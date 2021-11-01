@@ -1,0 +1,4 @@
+---
+ora_moddir: "{{ jboss_home }}/modules/com/oracle/ora18c/main"
+tafj_moddir: "{{ jboss_home }}/modules/com/temenos/tafj/main"
+t24_moddir: "{{ jboss_home }}/modules/com/temenos/t24/main"

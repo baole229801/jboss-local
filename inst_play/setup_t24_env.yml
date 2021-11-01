@@ -1,0 +1,67 @@
+---
+- hosts: all
+  become: yes
+
+  tasks:
+    - name: Create group for T24 project
+      ansible.builtin.group:
+        name: staff
+        state: present
+        gid: 1700
+
+    - name: Create user for T24 project
+      ansible.builtin.user:
+        name: t24l1
+        group: staff
+        home: /T24/t24l1
+        password: "{{ 't24l1' | password_hash('sha512') }}"
+        uid: 1700
+
+    - name: Create directory structure
+      ansible.builtin.file:
+        path: "/T24/t24l1/{{ item }}"
+        state: directory
+        owner: t24l1
+        group: staff
+      loop:
+        - TAFJ
+        - T24
+        - 3rdParty/Java
+        - 3rdParty/AS
+        - inst/tafjinst
+        - insta/t24inst
+
+    - name: Setup user's environment variables
+      become_user: t24l1
+      blockinfile:
+        path: ~/.bash_profile
+        block: |
+          export TEMENOS_HOME=/T24/t24l1
+          export TAFJ_HOME=$TEMENOS_HOME/TAFJ
+          export T24_HOME=$TEMENOS_HOME/T24
+          export JAVA_HOME=/usr/java/jdk1.8.0_301-i586
+          export JBOSS_HOME=/T24/t24l1/3rdParty/AS/jboss-eap-7.3
+
+    - name: Edit $PATH variable
+      become_user: t24l1
+      lineinfile:
+        path: ~/.bash_profile
+        regexp: "^export PATH="
+        line: export PATH=$JAVA_HOME/bin:$TAFJ_HOME/bin:$JBOSS_HOME/bin:$PATH
+
+    - name: Unzip Jboss and T24 package
+      ansible.builtin.unarchive:
+        remote_src: no
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: ../source/jboss-eap-7.3.tar.gz, dest: /T24/t24l1/3rdParty/AS }
+        #- { src: source/T24_CAM.tar, dest: "{{ temenos_home }}" }
+
+    - name: Set permissions, should be a handler
+      ansible.builtin.file:
+        path: /T24/t24l1
+        owner: t24l1
+        group: staff
+        recurse: yes
+        state: directory

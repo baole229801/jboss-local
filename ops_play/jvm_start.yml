@@ -1,0 +1,21 @@
+---
+- name: Import env playbook
+  import_playbook: ../env_vars.yml
+
+- hosts: master
+  become: yes
+  become_users: t24l1
+
+  tasks:
+    - name: Copy file batch start
+      ansible.builtin.copy:
+        remote_src: no
+        src: ../batch/restart_group
+        dest: "{{ jboss_home }}/batch"
+        state: present
+
+    - name: Start Jboss server group
+      ansible.builtin.shell:
+        shell: jboss-cli.sh --file=$JBOSS_HOME/batch/start_group
+      args:
+        chdir: "{{ jboss_home }}/bin"

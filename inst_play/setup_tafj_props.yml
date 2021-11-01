@@ -1,0 +1,41 @@
+---
+- name: Deploy drivers for Oracle Database
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ tafj_home }}/dbdrivers/oracle-12c/"
+    dest: "{{ tafj_home }}/ext"
+
+- name: Configure conf/tafj.properties
+  ansible.builtin.lineinfile:
+    path: "{{ tafj_home }}/conf/tafj.properties"
+    regexp: "^{{ item.pattern }}"
+    line: "{{ item.pattern }}={{ item.value }}"
+  loop:
+    - { pattern: tafj.home, value: "{{ tafj_home }}" }
+    - {
+        pattern: temn.tafj.directory.precompile,
+        value: "{{ t24_home }}/jars/t24lib",
+      }
+    - {
+        pattern: temn.tafj.jdbc.url,
+        value: jdbc:oracle:thin:@192.168.101.25:1521/R21CAM,
+      }
+    - { pattern: temn.tafj.jdbc.driver, value: oracle.jdbc.driver.OracleDriver }
+    - { pattern: temn.tafj.username, value: camnew }
+    - { pattern: temn.tafj.password, value: camnew }
+    - { pattern: temn.tafj.runtime.directory.current, value: "{{ t24_home }}" }
+    #- { pattern: temn.tafj.jdbc.write.use.merge, value: "false" }
+    - { pattern: temn.tafj.jdbc.write.use.merge.no.xml, value: "false" }
+    - { pattern: temn.tafj.locking.mode, value: DATABASE }
+
+- name: Configure jboss/tafj.properties
+  ansible.builtin.lineinfile:
+    path: "{{ tafj_home }}/appserver/jboss/jboss7eap/jboss-cli/tafj.properties"
+    regexp: "^{{ item.pattern }}"
+    line: "{{ item.pattern }}={{ item.value }}"
+  with_items:
+    - { pattern: TAFJ_HOME, value: "{{ tafj_home }}" }
+    - { pattern: DB_URL, value: jdbc:oracle:thin:@192.168.101.25:1521/R21CAM }
+    - { pattern: DB_DRIVER, value: ora18c }
+    - { pattern: DB_USER, value: camnew }
+    - { pattern: DB_PWD, value: camnew }

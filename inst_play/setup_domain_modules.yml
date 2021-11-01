@@ -1,0 +1,34 @@
+---
+- name: Create module directory structure
+  ansible.builtin.file:
+    path: "{{ jboss_home }}/modules/{{ item }}"
+    state: directory
+  loop:
+    - com/oracle/ora18c/main
+    - com/temenos/tafj/main
+    - com/temenos/t24/main
+
+- name: Copy module.xml from $TAFJ_HOME to the main directory
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ tafj_home }}/appserver/jboss/jboss7eap/modules/com/oracle/ora12c/main/module.xml"
+    dest: "{{ jboss_home }}/modules/com/oracle/ora18c/main"
+
+- name: Copy Oracle drivers from $TAFJ_HOME/ext to the main directory
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ tafj_home }}/dbdrivers/oracle-12c/"
+    dest: "{{ jboss_home }}/modules/com/oracle/ora18c/main"
+
+- name: Edit the copied module.xml
+  ansible.builtin.lineinfile:
+    path: "{{ jboss_home }}/modules/com/oracle/ora18c/main/module.xml"
+    regexp: '^<module xmlns="urn:jboss:module:1.0" name="com.oracle.ora12c">$'
+    line: '<module xmlns="urn:jboss:module:1.0" name="com.oracle.ora18c">'
+
+- name: Edit the jboss-cli.xml file
+  ansible.builtin.lineinfile:
+    path: "{{ jboss_home }}/bin/jboss-cli.xml"
+    regexp: <host>localhost</host>
+    firstmatch: yes
+    line: "<host>{{ domain_controller }}</host>"

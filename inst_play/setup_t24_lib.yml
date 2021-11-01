@@ -1,0 +1,58 @@
+---
+- name: Copy module.xml from $TAFJ_HOME to the main directory
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ tafj_home }}/appserver/jboss/jboss7eap/modules/com/temenos/tafj/main/module.xml"
+    dest: "{{ tafj_moddir }}"
+
+- name: Create symbolic links to $TAFJ_HOME/{lib,ext}
+  ansible.builtin.file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  with_items:
+    - { src: "{{ tafj_home }}/lib", dest: "{{ tafj_moddir }}/lib" }
+    - { src: "{{ tafj_home }}/ext", dest: "{{ tafj_moddir }}/ext" }
+    - {
+        src: "{{ temenos_home }}/T24/jars/t24lib",
+        dest: "{{ t24_moddir }}/t24lib",
+      }
+
+- name: Add ora18c dependency
+  ansible.builtin.lineinfile:
+    path: "{{ tafj_moddir }}/module.xml"
+    insertafter: <module name="com.temenos.t24" />
+    line: <module name="com.oracle.ora18c" />
+
+- name: Generate Transact module.xml
+  shell: JBossTools com.temenos.t24 $TEMENOS_HOME/T24/jars/t24lib $JBOSS_HOME/modules/com/temenos/t24/main t24lib –tafjdep
+  args:
+    chdir: "{{ tafj_home }}/bin"
+
+- name: Check tafj module dependency
+  shell: grep -c "com.temenos.tafj" module.xml || true
+  args:
+    chdir: "{{ t24_moddir }}"
+  register: check_result
+
+- name: Add tafj module dependency
+  ansible.builtin.lineinfile:
+    path: "{{ t24_moddir }}/module.xml"
+    insertafter: <!--<module name="Add.your.modules.dependencies.here"/>-->
+    line: <module name="com.temenos.tafj" />
+  when: check_result.stdout == "0"
+
+- name: Configure jboss-cli.xml
+  ansible.builtin.lineinfile:
+    path: "{{ jboss_home }}/bin/jboss-cli.xml"
+    regexp: "^{{ item.pattern }}"
+    line: "{{ item.value }}"
+  with_items:
+    - {
+        pattern: "    <resolve-parameter-values>false</resolve-parameter-values>",
+        value: "<resolve-parameter-values>true</resolve-parameter-values>",
+      }
+    - {
+        pattern: "    <validate-operation-requests>",
+        value: "<validate-operation-requests>true</validate-operation-requests>",
+      }

@@ -1,0 +1,93 @@
+# Initial profile setup
+/socket-binding-group=full-ha-sockets/remote-destination-outbound-socket-binding=t24-broker:add(host=192.168.181.175,port=61616)
+
+/profile=full-ha:clone(to-profile=brw-profile)
+/profile=full-ha:clone(to-profile=tocf-profile)
+/profile=full-ha:clone(to-profile=brw-tafj-profile)
+/profile=full-ha:clone(to-profile=to-tafj-profile)
+
+# Create groups
+
+# BrowserWeb profile
+/profile=brw-profile/subsystem=ee:write-attribute(name="global-modules",value=[{"name" => "com.temenos.tafj","slot" => "main"},{"name" => "com.temenos.t24","slot" => "main"}])  
+
+/profile=brw-profile/subsystem=ejb3/strict-max-bean-instance-pool=browser-mdb-strict-max-pool:add(max-pool-size=10,timeout=5,timeout-unit=MINUTES)
+
+/profile=brw-profile/subsystem=messaging-activemq/external-jms-queue=t24BROWSERQueue/:add(entries=["java:/queue/t24BrowserQueue","java:jboss/exported/jms/queue/t24BrowserQueue"])
+/profile=brw-profile/subsystem=messaging-activemq/external-jms-queue=t24BROWSERReplyQueue/:add(entries=["java:/queue/t24BrowserReplyQueue","java:jboss/exported/jms/queue/t24BrowserReplyQueue"])
+
+/profile=brw-profile/subsystem=undertow/server=default-server/http-listener=default/:write-attribute(name=max-parameters, value=10000) 
+
+/profile=brw-profile/subsystem=messaging-activemq/remote-connector=t24broker-connector:add(socket-binding=t24-broker)
+
+/profile=brw-profile/subsystem=messaging-activemq/connection-factory=ConnectionFactory:add(connectors=["t24broker-connector"],entries=["java:/ConnectionFactory"])
+/profile=brw-profile/subsystem=messaging-activemq/server=default/connection-factory=InVmConnectionFactory:remove()
+
+# TOCF profile
+/profile=tocf-profile/subsystem=ee:write-attribute(name="global-modules",value=[{"name" => "com.temenos.tafj","slot" => "main"},{"name" => "com.temenos.t24","slot" => "main"}])  
+
+/profile=tocf-profile/subsystem=ejb3/strict-max-bean-instance-pool=ofs-mdb-strict-max-pool:add(max-pool-size=10,timeout=5,timeout-unit=MINUTES)
+
+/profile=tocf-profile/subsystem=messaging-activemq/external-jms-queue=t24OFSQueue/:add(entries=["java:/queue/t24OFSQueue","java:jboss/exported/jms/queue/t24OFSQueue"])
+/profile=tocf-profile/subsystem=messaging-activemq/external-jms-queue=t24OFSReplyQueue/:add(entries=["java:/queue/t24OFSReplyQueue","java:jboss/exported/jms/queue/t24OFSReplyQueue"])
+/profile=tocf-profile/subsystem=messaging-activemq/external-jms-queue=requestQueue/:add(entries=["java:/queue/requestQueue"])
+/profile=tocf-profile/subsystem=messaging-activemq/external-jms-queue=responseQueue/:add(entries=["java:/queue/responseQueue"])
+
+/profile=tocf-profile/subsystem=undertow/server=default-server/http-listener=default/:write-attribute(name=max-parameters, value=10000) 
+
+/profile=tocf-profile/subsystem=messaging-activemq/remote-connector=t24broker-connector:add(socket-binding=t24-broker)
+
+/profile=tocf-profile/subsystem=messaging-activemq/connection-factory=t24ConnectionFactory:add(connectors=["t24broker-connector"],entries=["java:/jca/t24ConnectionFactory"])
+/profile=tocf-profile/subsystem=messaging-activemq/connection-factory=TopicConnectionFactory:add(connectors=["t24broker-connector"],entries=["java:/ConnectionFactory"])
+/profile=tocf-profile/subsystem=messaging-activemq/server=default/connection-factory=InVmConnectionFactory:remove()
+
+/profile=tocf-profile/subsystem=resource-adapters/resource-adapter=tocfT24ra-ra.rar:add(archive=tocfT24ra-ra.rar,transaction-support=XATransaction)
+
+# BrowserWeb TAFJEE profile
+/profile=brw-tafj-profile/subsystem=ee:write-attribute(name="global-modules",value=[{"name" => "com.temenos.tafj","slot" => "main"},{"name" => "com.temenos.t24","slot" => "main"}])  
+
+/profile=brw-tafj-profile/subsystem=ejb3/strict-max-bean-instance-pool=browser-mdb-strict-max-pool:add(max-pool-size=10,timeout=5,timeout-unit=MINUTES)
+
+/profile=brw-tafj-profile/subsystem=messaging-activemq/external-jms-queue=t24BROWSERQueue/:add(entries=["java:/queue/t24BROWSERQueue","java:jboss/exported/jms/queue/t24BROWSERQueue"])
+/profile=brw-tafj-profile/subsystem=messaging-activemq/external-jms-queue=t24BROWSERReplyQueue/:add(entries=["java:/queue/t24BROWSERReplyQueue","java:jboss/exported/jms/queue/t24BROWSERReplyQueue"])
+/profile=brw-tafj-profile/subsystem=messaging-activemq/external-jms-queue=t24EXECQueue/:add(entries=["java:/queue/t24EXECQueue"])
+
+/profile=brw-tafj-profile/subsystem=undertow/server=default-server/http-listener=default/:write-attribute(name=max-parameters, value=10000) 
+
+/profile=brw-tafj-profile/subsystem=messaging-activemq/remote-connector=t24broker-connector:add(socket-binding=t24-broker)
+
+/profile=brw-tafj-profile/subsystem=messaging-activemq/pooled-connection-factory=activemq.rar-rar:add(connectors=["t24broker-connector"],entries=["java:/JmsXA"],user="t24cam",password="t24cam")
+/profile=brw-tafj-profile/subsystem=messaging-activemq/connection-factory=TAFJQueueConnectionFactory:add(connectors=["t24broker-connector"], entries=["java:/ConnectionFactory"])
+/profile=brw-tafj-profile/subsystem=messaging-activemq/external-jms-topic=tecEventsTopic:add(entries=["java:/topic/tecEventsTopic"])
+/profile=brw-tafj-profile/subsystem=messaging-activemq/server=default/connection-factory=InVmConnectionFactory:remove()
+
+/profile=brw-tafj-profile/subsystem=datasources/jdbc-driver=ora18c:add(driver-name=ora18c,driver-module-name=com.oracle.ora18c,driver-xa-datasource-class-name=oracle.jdbc.xa.client.OracleXADataSource)
+/profile=brw-tafj-profile/subsystem=datasources/data-source="t24DS":add(jta="true",use-ccm="true",use-java-context="true",enabled="true",jndi-name="java:/jdbc/t24DS",max-pool-size=220,min-pool-size=5,flush-strategy="FailingConnectionOnly",driver-name=${DB_DRIVER},connection-url=${DB_URL},user-name=${DB_USER},password=${DB_PWD})
+/profile=brw-tafj-profile/subsystem=datasources/data-source="t24DS"/connection-properties=defaultRowPrefetch:add(value="100")
+/profile=brw-tafj-profile/subsystem=datasources/data-source="t24LockingDS":add(jta="false",use-ccm="true",use-java-context="true",enabled="true",jndi-name="java:/jdbc/t24LockingDS",max-pool-size=220,min-pool-size=5,flush-strategy="FailingConnectionOnly",driver-name=${DB_DRIVER},connection-url=${DB_URL},user-name=${DB_USER},password=${DB_PWD})
+/profile=brw-tafj-profile/subsystem=datasources/data-source="t24RODS":add(jta="false",use-ccm="true",use-java-context="true",enabled="true",jndi-name="java:/jdbc/t24RODS",max-pool-size=220,min-pool-size=5,flush-strategy="FailingConnectionOnly",driver-name=${DB_DRIVER},connection-url=${DB_URL},user-name=${DB_USER},password=${DB_PWD})
+
+# TOCF TAFJEE profile
+/profile=to-tafj-profile/subsystem=ee:write-attribute(name="global-modules",value=[{"name" => "com.temenos.tafj","slot" => "main"},{"name" => "com.temenos.t24","slot" => "main"}])  
+
+/profile=to-tafj-profile/subsystem=ejb3/strict-max-bean-instance-pool=ofs-mdb-strict-max-pool:add(max-pool-size=10,timeout=5,timeout-unit=MINUTES)
+
+/profile=to-tafj-profile/subsystem=messaging-activemq/external-jms-queue=t24OFSQueue/:add(entries=["java:/queue/t24OFSQueue","java:jboss/exported/jms/queue/t24OFSQueue"])
+/profile=to-tafj-profile/subsystem=messaging-activemq/external-jms-queue=t24OFSReplyQueue/:add(entries=["java:/queue/t24OFSReplyQueue","java:jboss/exported/jms/queue/t24OFSReplyQueue"])
+/profile=to-tafj-profile/subsystem=messaging-activemq/external-jms-queue=t24EXECQueue/:add(entries=["java:/queue/t24EXECQueue"])
+
+/profile=to-tafj-profile/subsystem=undertow/server=default-server/http-listener=default/:write-attribute(name=max-parameters, value=10000) 
+
+/profile=to-tafj-profile/subsystem=messaging-activemq/remote-connector=t24broker-connector:add(socket-binding=t24-broker)
+
+/profile=to-tafj-profile/subsystem=messaging-activemq/connection-factory=t24ConnectionFactory:add(connectors=["t24broker-connector"],entries=["java:/ConnectionFactory"])
+/profile=to-tafj-profile/subsystem=messaging-activemq/server=default/connection-factory=InVmConnectionFactory:remove()
+/profile=to-tafj-profile/subsystem=messaging-activemq/pooled-connection-factory=activemq.rar-rar:add(connectors=["t24broker-connector"],entries=["java:/jmsXA"],user="t24cam",password="t24cam")
+
+/profile=to-tafj-profile/subsystem=datasources/jdbc-driver=ora18c:add(driver-name=ora18c,driver-module-name=com.oracle.ora18c,driver-xa-datasource-class-name=oracle.jdbc.xa.client.OracleXADataSource)
+/profile=to-tafj-profile/subsystem=datasources/data-source="t24DS":add(jta="true",use-ccm="true",use-java-context="true",enabled="true",jndi-name="java:/jdbc/t24DS",max-pool-size=220,min-pool-size=5,flush-strategy="FailingConnectionOnly",driver-name=${DB_DRIVER},connection-url=${DB_URL},user-name=${DB_USER},password=${DB_PWD})
+/profile=to-tafj-profile/subsystem=datasources/data-source="t24DS"/connection-properties=defaultRowPrefetch:add(value="100")
+/profile=to-tafj-profile/subsystem=datasources/data-source="t24LockingDS":add(jta="false",use-ccm="true",use-java-context="true",enabled="true",jndi-name="java:/jdbc/t24LockingDS",max-pool-size=220,min-pool-size=5,flush-strategy="FailingConnectionOnly",driver-name=${DB_DRIVER},connection-url=${DB_URL},user-name=${DB_USER},password=${DB_PWD})
+/profile=to-tafj-profile/subsystem=datasources/data-source="t24RODS":add(jta="false",use-ccm="true",use-java-context="true",enabled="true",jndi-name="java:/jdbc/t24RODS",max-pool-size=220,min-pool-size=5,flush-strategy="FailingConnectionOnly",driver-name=${DB_DRIVER},connection-url=${DB_URL},user-name=${DB_USER},password=${DB_PWD})
+
+/profile=to-tafj-profile/subsystem=messaging-activemq/external-jms-topic=tecEventsTopic:add(entries=["java:/topic/tecEventsTopic"])

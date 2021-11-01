@@ -1,0 +1,3 @@
+connect
+batch
+/host=master/server-config=server-one:stop(timeout=60)

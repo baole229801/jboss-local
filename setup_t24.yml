@@ -1,0 +1,47 @@
+---
+- name: Setup T24 environment
+  import_playbook: inst_play/setup_t24_env.yml
+
+- hosts: all
+  become: yes
+  become_user: t24l1
+  become_flags: -i
+
+  pre_tasks:
+    - name: Read T24 environment variables
+      set_fact:
+        jboss_home: "{{ ansible_env.JBOSS_HOME }}"
+        temenos_home: "{{ ansible_env.TEMENOS_HOME }}"
+        tafj_home: "{{ ansible_env.TAFJ_HOME }}"
+        t24_home: "{{ ansible_env.T24_HOME }}"
+        host_ip: "{{ hostvars[inventory_hostname]['inventory_hostname'] }}"
+        domain_controller: "{{ hostvars[groups['domain'][0]]['ansible_ens33']['ipv4']['address'] }}"
+
+  tasks:
+    - name: Load variable files
+      include_vars:
+        dir: vars
+        depth: 1
+
+    - name: Setup TAFJ props
+      include: inst_play/setup_tafj_props.yml
+
+    - name: Setup JBoss modules
+      include: inst_play/setup_domain_modules.yml
+
+    - name: Setup T24 libraries
+      include: inst_play/setup_t24_lib.yml
+
+    - name: Run the JBoss domain controller
+      include: inst_play/setup_domain_master.yml
+      when: inventory_hostname in groups['domain']
+
+    - name: Config JBoss profiles 
+      include: inst_play/setup_profiles.yml
+      when: inventory_hostname in groups['domain']
+
+    - name: Run JBoss host controller
+      include: inst_play/setup_domain_slave.yml
+      when: inventory_hostname in groups['slave']
+    
+
